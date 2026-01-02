@@ -1,0 +1,136 @@
+/* サーバーに推測を送信する関数 */
+async function sendGuess(params) {
+  const response = await fetch("/api/guess", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+  return response.json();
+}
+
+let bestScore = localStorage.getItem("bestScore") ? parseInt(localStorage.getItem("bestScore")) : null;
+
+// 最高記録を表示
+if (bestScore) {
+  document.getElementById("bestScore").textContent = bestScore;
+}
+
+const guessInput = document.getElementById("guessInput");
+const submitBtn = document.getElementById("submitGuess");
+const feedbackDiv = document.getElementById("feedback");
+const attemptsSpan = document.getElementById("attempts");
+const resetBtn = document.getElementById("resetBtn");
+const resetScoreBtn = document.getElementById("resetScoreBtn");
+
+// 送信ボタンのクリックイベント
+submitBtn.addEventListener("click", handleGuess);
+
+// Enterキーでの送信
+guessInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    handleGuess();
+  }
+});
+
+// リセットボタンのクリックイベント
+resetBtn.addEventListener("click", resetGame);
+
+// ベストスコアリセットボタンのクリックイベント
+resetScoreBtn.addEventListener("click", resetBestScore);
+
+async function handleGuess() {
+  const guess = parseInt(guessInput.value);
+  console.log(guess);
+
+  if (!guess || guess < 1 || guess > 100) {
+    showFeedback("error", "1から100までの数字を入力してください");
+    return;
+  }
+
+  // ボタンをローディング状態に
+  submitBtn.classList.add("loading");
+  submitBtn.disabled = true;
+
+  try {
+    const response = await sendGuess({ guess });
+    console.log("サーバーの応答:", response);
+
+    // 試行回数を更新
+    attemptsSpan.textContent = response.attempts;
+
+    if (response.status === "correct") {
+      handleCorrectGuess(response);
+    } else if (response.status === "too_low") {
+      showFeedback("too-low", response.message);
+    } else if (response.status === "too_high") {
+      showFeedback("too-high", response.message);
+    } else {
+      showFeedback("info", response.message);
+    }
+  } catch (error) {
+    showFeedback("error", "サーバーとの通信に失敗しました");
+    console.error("エラー:", error);
+  } finally {
+    submitBtn.classList.remove("loading");
+    submitBtn.disabled = false;
+    guessInput.value = "";
+    guessInput.focus();
+  }
+}
+
+function handleCorrectGuess(response) {
+  // 最高記録を更新
+  if (!bestScore || response.attempts < bestScore) {
+    bestScore = response.attempts;
+    localStorage.setItem("bestScore", bestScore);
+    document.getElementById("bestScore").textContent = bestScore;
+  }
+
+  showFeedback("correct", response.message);
+  attemptsSpan.textContent = response.attempts;
+
+  // リセットボタンを表示
+  resetBtn.style.display = "block";
+  submitBtn.disabled = true;
+  guessInput.disabled = true;
+}
+
+/* フィードバック表示関数 */
+function showFeedback(type, message) {
+  feedbackDiv.className = `feedback-section ${type}`;
+  feedbackDiv.innerHTML = `<p class="feedback-text">${message}</p>`;
+}
+
+/* ゲームリセット関数 */
+async function resetGame() {
+  try {
+    // サーバーにリセット要求を送信
+    const response = await sendGuess({ guess: 0, reset: true });
+    console.log("リセット応答:", response);
+
+    // UI をリセット
+    attemptsSpan.textContent = "0";
+    guessInput.disabled = false;
+    guessInput.value = "";
+    submitBtn.disabled = false;
+    resetBtn.style.display = "none";
+
+    showFeedback("info", response.message);
+    guessInput.focus();
+  } catch (error) {
+    console.error("リセット失敗:", error);
+    showFeedback("error", "リセットに失敗しました");
+  }
+}
+
+/* ベストスコアリセット関数 */
+function resetBestScore() {
+  if (confirm("ベストスコアをリセットしますか？")) {
+    localStorage.removeItem("bestScore");
+    bestScore = null;
+    document.getElementById("bestScore").textContent = "-";
+    console.log("ベストスコアをリセットしました");
+  }
+}

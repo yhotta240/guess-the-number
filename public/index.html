@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数当てゲーム</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="game-card">
+        <h1 class="title">数当てゲーム</h1>
+        <p class="subtitle">1から100までの数字を当ててください</p>
+
+        <div class="input-section">
+          <input 
+            type="number" 
+            id="guessInput" 
+            placeholder="数字を入力" 
+            min="1" 
+            max="100"
+            autocomplete="off"
+          />
+          <button id="submitGuess" class="submit-btn">予想する</button>
+        </div>
+
+        <div id="feedback" class="feedback-section">
+          <p class="feedback-text">ゲームを開始してください</p>
+        </div>
+
+        <div class="stats-section">
+          <div class="stat-item">
+            <span class="stat-label">試行回数</span>
+            <span class="stat-value" id="attempts">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">ベスト</span>
+            <span class="stat-value" id="bestScore">-</span>
+            <button id="resetScoreBtn" class="reset-score-btn" title="ベストスコアをリセット">×</button>
+          </div>
+        </div>
+
+        <button id="resetBtn" class="reset-btn" style="display: none;">
+          新しいゲーム
+        </button>
+      </div>
+    </div>
+  </body>
+  <script src="script.js"></script>
+</html>

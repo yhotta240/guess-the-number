@@ -1,44 +1,66 @@
-use rand::Rng;
-use rand::thread_rng;
-use std::cmp::Ordering;
-use std::io;
+mod game;
+mod handlers;
+mod models;
 
-fn main() {
-    println!("数当てゲーム!");
+use axum::{routing::post, Router};
+use std::sync::Arc;
+use tokio::net::TcpListener;
+use tokio::sync::Mutex;
+use tower_http::services::ServeDir;
 
-    let secret_number: u32 = thread_rng().gen_range(1..101);
-    
-    let mut attempts: u32 = 0; //試行回数をカウントする変数
+use game::GameState;
+use handlers::guess_number;
 
-    loop {
-        println!("1から100までの数字を予想してください:");
-    
-        let mut guess: String = String::new();
+#[tokio::main]
+async fn main() {
+    // ゲーム状態の初期化
+    let game_state = Arc::new(Mutex::new(GameState::new()));
 
-        io::stdin()
-            .read_line(&mut guess)
-            .expect("読み込みに失敗しました");
+    let serve_dir = ServeDir::new("public");
 
-        let guess: u32 = match guess.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue,
-        };
-    
-        println!("あなたの予想: {}", guess);
+    let app = Router::new()
+        // 数当てゲームのエンドポイントを設定
+        .route("/api/guess", post(guess_number))
+        // 静的ファイルの提供
+        .nest_service("/", serve_dir)
+        // 状態を共有
+        .with_state(game_state.clone());
 
-        match guess.cmp(&secret_number) {
-            Ordering::Less => {
-                println!("小さすぎ！");
-                attempts += 1;
-            },  //小さすぎ！
-            Ordering::Greater => {
-                println!("大きすぎ！");
-                attempts += 1;
-            }, //大きすぎ！
-            Ordering::Equal => {
-                println!("やったね！ あなたの試行回数は {} 回です。", attempts + 1);
-                break;
-            } //やったね！
+    // すべてのネットワークインターフェースでバインド
+    let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
+
+    println!("========================================");
+    println!("🎮 数当てゲームサーバーを起動しました");
+    println!("========================================");
+    println!("ローカル: http://localhost:3000");
+    println!("ローカル: http://127.0.0.1:3000");
+
+    // ローカルIPアドレスを取得して表示
+    if let Ok(hostname) = hostname::get() {
+        if let Some(hostname_str) = hostname.to_str() {
+            println!("ホスト名: http://{}:3000", hostname_str);
         }
     }
+
+    // ネットワークインターフェースのIPアドレスを表示
+    match local_ip_address::local_ip() {
+        Ok(ip) => {
+            println!("LAN内のデバイスから: http://{}:3000", ip);
+        }
+        Err(_) => {
+            println!("LAN内のデバイスから: http://<このPCのIPアドレス>:3000");
+            println!(
+                "   (コマンドプロンプトで 'ipconfig' を実行してIPv4アドレスを確認してください)"
+            );
+        }
+    }
+
+    println!("========================================");
+    println!(
+        "シークレッナンバー: {}",
+        game_state.lock().await.secret_number
+    );
+    println!("========================================");
+
+    axum::serve(listener, app).await.unwrap();
 }
