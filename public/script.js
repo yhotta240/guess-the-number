@@ -42,7 +42,6 @@ resetScoreBtn.addEventListener("click", resetBestScore);
 
 async function handleGuess() {
   const guess = parseInt(guessInput.value);
-  console.log(guess);
 
   if (!guess || guess < 1 || guess > 100) {
     showFeedback("error", "1から100までの数字を入力してください");
@@ -55,7 +54,6 @@ async function handleGuess() {
 
   try {
     const response = await sendGuess({ guess });
-    console.log("サーバーの応答:", response);
 
     // 試行回数を更新
     attemptsSpan.textContent = response.attempts;
@@ -70,7 +68,7 @@ async function handleGuess() {
       showFeedback("info", response.message);
     }
   } catch (error) {
-    showFeedback("error", "サーバーとの通信に失敗しました");
+    showFeedback("error", "サーバとの通信に失敗しました");
     console.error("エラー:", error);
   } finally {
     submitBtn.classList.remove("loading");
@@ -108,7 +106,6 @@ async function resetGame() {
   try {
     // サーバーにリセット要求を送信
     const response = await sendGuess({ guess: 0, reset: true });
-    console.log("リセット応答:", response);
 
     // UI をリセット
     attemptsSpan.textContent = "0";
