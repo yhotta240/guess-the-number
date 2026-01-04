@@ -7,6 +7,12 @@ pub struct InputData {
     pub reset: Option<bool>, // リセットフラグ（オプション）
 }
 
+/// バリデーション用のエラー型
+#[derive(Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+}
+
 /// サーバーからのレスポンスデータ
 #[derive(Serialize)]
 pub struct ResponseData {

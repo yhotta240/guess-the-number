@@ -2,17 +2,21 @@ mod game;
 mod handlers;
 mod models;
 
-use axum::{routing::post, Router};
+use axum::{Router, routing::post};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
+use tracing_subscriber;
 
 use game::GameState;
 use handlers::guess_number;
 
 #[tokio::main]
 async fn main() {
+    // ロギングの初期化
+    tracing_subscriber::fmt::init();
+
     // ゲーム状態の初期化
     let game_state = Arc::new(Mutex::new(GameState::new()));
 
@@ -27,7 +31,13 @@ async fn main() {
         .with_state(game_state.clone());
 
     // すべてのネットワークインターフェースでバインド
-    let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = match TcpListener::bind("0.0.0.0:3000").await {
+        Ok(listener) => listener,
+        Err(e) => {
+            tracing::error!("ポート 3000 へのバインドに失敗しました: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     println!("========================================");
     println!("🎮 数当てゲームサーバーを起動しました");
@@ -48,10 +58,7 @@ async fn main() {
             println!("LAN内のデバイスから: http://{}:3000", ip);
         }
         Err(_) => {
-            println!("LAN内のデバイスから: http://<このPCのIPアドレス>:3000");
-            println!(
-                "   (コマンドプロンプトで 'ipconfig' を実行してIPv4アドレスを確認してください)"
-            );
+            println!("LAN内のIPアドレスの取得に失敗しました");
         }
     }
 
@@ -62,5 +69,8 @@ async fn main() {
     );
     println!("========================================");
 
-    axum::serve(listener, app).await.unwrap();
+    if let Err(e) = axum::serve(listener, app).await {
+        tracing::error!("サーバーエラー: {}", e);
+        std::process::exit(1);
+    }
 }

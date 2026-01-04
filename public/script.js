@@ -7,7 +7,7 @@ async function sendGuess(params) {
     },
     body: JSON.stringify(params),
   });
-  return response.json();
+  return response;
 }
 
 let bestScore = localStorage.getItem("bestScore") ? parseInt(localStorage.getItem("bestScore")) : null;
@@ -55,17 +55,26 @@ async function handleGuess() {
   try {
     const response = await sendGuess({ guess });
 
-    // 試行回数を更新
-    attemptsSpan.textContent = response.attempts;
+    // エラーレスポンスをチェック
+    if (!response.ok) {
+      const errorData = await response.json();
+      showFeedback("error", errorData.error || "サーバーエラーが発生しました");
+      return;
+    }
 
-    if (response.status === "correct") {
-      handleCorrectGuess(response);
-    } else if (response.status === "too_low") {
-      showFeedback("too-low", response.message);
-    } else if (response.status === "too_high") {
-      showFeedback("too-high", response.message);
+    const data = await response.json();
+
+    // 試行回数を更新
+    attemptsSpan.textContent = data.attempts;
+
+    if (data.status === "correct") {
+      handleCorrectGuess(data);
+    } else if (data.status === "too_low") {
+      showFeedback("too-low", data.message);
+    } else if (data.status === "too_high") {
+      showFeedback("too-high", data.message);
     } else {
-      showFeedback("info", response.message);
+      showFeedback("info", data.message);
     }
   } catch (error) {
     showFeedback("error", "サーバとの通信に失敗しました");
