@@ -40,13 +40,14 @@ pub async fn guess_number(
         tracing::warn!("無効なリクエスト形式: {:?}", e);
         ApiError("無効なリクエスト形式です．数値を入力してください".to_string())
     })?;
+
     let mut game = state.lock().await;
 
     // リセット要求があればゲームをリセット
     if input.reset.unwrap_or(false) {
         game.reset();
         tracing::info!("ゲームがリセットされました");
-        tracing::debug!("シークレッナンバー: {}", game.secret_number);
+        tracing::info!("シークレッナンバー: {}", game.secret_number);
         return Ok(Json(ResponseData::reset()));
     }
 

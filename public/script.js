@@ -115,6 +115,7 @@ async function resetGame() {
   try {
     // サーバーにリセット要求を送信
     const response = await sendGuess({ guess: 0, reset: true });
+    const data = await response.json();
 
     // UI をリセット
     attemptsSpan.textContent = "0";
@@ -123,7 +124,7 @@ async function resetGame() {
     submitBtn.disabled = false;
     resetBtn.style.display = "none";
 
-    showFeedback("info", response.message);
+    showFeedback("info", data.message);
     guessInput.focus();
   } catch (error) {
     console.error("リセット失敗:", error);
